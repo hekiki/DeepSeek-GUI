@@ -134,6 +134,20 @@ describe('InitialSessionUsageHeatmap', () => {
     expect(html).not.toContain('Explain this project&#x27;s structure')
   })
 
+  it('renders only the calendar in focus mode', () => {
+    const html = render(state({ usage: usage(), loaded: true }), { calendarOnly: true })
+
+    expect(html).toContain('Daily Kun usage calendar')
+    expect(html).toContain('aria-label="2026-05-02')
+    expect(html).not.toContain('ds-runtime-wake-stage')
+    expect(html).not.toContain('Overview')
+    expect(html).not.toContain('Models')
+    expect(html).not.toContain('Sessions')
+    expect(html).not.toContain('Messages')
+    expect(html).not.toContain('Collapse calendar')
+    expect(html).not.toContain('You&#x27;ve used 11.2k tokens across 2 active days.')
+  })
+
   it('renders stacked model usage bars with a hover breakdown tooltip', () => {
     const detailedDay = {
       date: '2026-06-04',

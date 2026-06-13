@@ -728,17 +728,22 @@ function UsagePanelCard({ children }: { children: ReactElement }): ReactElement 
   )
 }
 
-export function InitialSessionUsageHeatmap(): ReactElement {
+export function InitialSessionUsageHeatmap({
+  calendarOnly = false
+}: {
+  calendarOnly?: boolean
+} = {}): ReactElement {
   const [refreshKey, setRefreshKey] = useState(0)
   const [rangeKey, setRangeKey] = useState<UsageRangeKey>('all')
   const state = useDailyUsageState(true, refreshKey, USAGE_RANGE_DAYS.all)
-  const modelState = useModelUsageState(true, `${refreshKey}:${rangeKey}`, USAGE_RANGE_DAYS[rangeKey])
+  const modelState = useModelUsageState(!calendarOnly, `${refreshKey}:${rangeKey}`, USAGE_RANGE_DAYS[rangeKey])
 
   return (
     <InitialSessionUsageHeatmapView
       state={state}
       modelState={modelState}
       rangeKey={rangeKey}
+      calendarOnly={calendarOnly}
       onRangeChange={setRangeKey}
       onRefresh={() => setRefreshKey((value) => value + 1)}
     />
@@ -752,6 +757,7 @@ export function InitialSessionUsageHeatmapView({
   initialCollapsed = false,
   initialActiveTab = 'overview',
   initialModelHoverIndex = null,
+  calendarOnly = false,
   onRangeChange,
   onRefresh
 }: {
@@ -761,6 +767,7 @@ export function InitialSessionUsageHeatmapView({
   initialCollapsed?: boolean
   initialActiveTab?: UsageTabKey
   initialModelHoverIndex?: number | null
+  calendarOnly?: boolean
   onRangeChange?: (rangeKey: UsageRangeKey) => void
   onRefresh?: () => void
 }): ReactElement {
@@ -807,6 +814,7 @@ export function InitialSessionUsageHeatmapView({
 
   useEffect(() => {
     let cancelled = false
+    if (calendarOnly) return
     if (typeof window === 'undefined' || typeof window.kunGui?.getSettings !== 'function') return
     void window.kunGui.getSettings()
       .then((settings) => {
@@ -818,7 +826,28 @@ export function InitialSessionUsageHeatmapView({
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [calendarOnly])
+
+  if (calendarOnly) {
+    return (
+      <div className="ds-initial-usage-heatmap ds-no-drag mx-auto flex min-h-[min(360px,calc(100dvh-220px))] w-full items-center justify-center px-3 py-6 text-left sm:px-5 sm:py-8">
+        <div className="w-full max-w-[560px] min-w-0">
+          <UsagePanelCard>
+            {mode === 'populated' || state.loading ? (
+              <HeatmapGrid
+                buckets={heatmapBuckets}
+                loading={state.loading && heatmapBuckets.length === 0}
+                selected={activeBucket}
+                onSelect={setActiveBucket}
+              />
+            ) : (
+              <PreviewCalendar mode={mode} />
+            )}
+          </UsagePanelCard>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="ds-initial-usage-heatmap ds-no-drag mx-auto flex min-h-[min(620px,calc(100dvh-220px))] w-full items-center justify-center px-3 py-6 text-left sm:px-5 sm:py-8">

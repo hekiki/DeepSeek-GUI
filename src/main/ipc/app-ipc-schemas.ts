@@ -1023,3 +1023,9 @@ export const sseStartPayloadSchema = z
   .strict()
 
 export const streamIdSchema = trimmedString(MAX_ID_LENGTH)
+
+export const uiPluginIdPayloadSchema = z
+  .object({
+    id: z.string().trim().regex(/^[a-z0-9][a-z0-9-]{1,39}$/)
+  })
+  .strict()

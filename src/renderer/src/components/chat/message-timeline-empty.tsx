@@ -127,7 +127,8 @@ export function MessageTimelineEmptyHero({
   onPickWorkspace,
   onRetry,
   onOpenSettings,
-  onSelectSuggestion
+  onSelectSuggestion,
+  focusModeEnabled = false
 }: {
   route: 'chat' | 'claw'
   ready: boolean
@@ -138,6 +139,7 @@ export function MessageTimelineEmptyHero({
   onRetry: () => void
   onOpenSettings: () => void
   onSelectSuggestion?: (prompt: string) => void
+  focusModeEnabled?: boolean
 }): ReactElement {
   const { t } = useTranslation('common')
 
@@ -175,7 +177,7 @@ export function MessageTimelineEmptyHero({
     )
   }
 
-  return <InitialSessionUsageHeatmap />
+  return <InitialSessionUsageHeatmap calendarOnly={focusModeEnabled} />
 }
 
 export function ThreadForkBanner({ parentTitle }: { parentTitle: string }): ReactElement {

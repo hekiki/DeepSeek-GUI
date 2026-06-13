@@ -64,6 +64,11 @@ import type {
   SpeechTranscriptionResult
 } from './speech-to-text'
 import type {
+  UiPluginListItem,
+  UiPluginManifestV1,
+  UiPluginRuntimeFigures
+} from './ui-plugin'
+import type {
   WriteRetrievalRequest,
   WriteRetrievalResult
 } from './write-retrieval'
@@ -119,6 +124,14 @@ export type SkillListItem = {
 export type SkillListResult =
   | { ok: true; skills: SkillListItem[]; validationErrors: Array<{ root: string; message: string }> }
   | { ok: false; message: string }
+export type UiPluginListIpcResult = { plugins: UiPluginListItem[] }
+export type UiPluginInstallIpcResult =
+  | { canceled: true }
+  | { canceled: false; ok: true; plugin: UiPluginListItem }
+  | { canceled: false; ok: false; errors: string[] }
+export type UiPluginLoadIpcResult =
+  | { ok: true; manifest: UiPluginManifestV1; figures: UiPluginRuntimeFigures }
+  | { ok: false; error: string }
 export type DeepseekConfigFileResult = { path: string; content: string; exists: boolean }
 export type DeepseekConfigSaveResult = { ok: true; path: string }
 export type TurnCompleteNotificationPayload = {
@@ -197,6 +210,10 @@ export type KunGuiApi = {
   listSkills: (workspaceRoot?: string) => Promise<SkillListResult>
   saveSkillFile: (rootPath: string, skillName: string, content: string) => Promise<SkillSaveResult>
   openSkillRoot: (rootPath: string) => Promise<PathOpenResult>
+  listUiPlugins: () => Promise<UiPluginListIpcResult>
+  installUiPlugin: () => Promise<UiPluginInstallIpcResult>
+  removeUiPlugin: (id: string) => Promise<{ ok: boolean }>
+  loadUiPlugin: (id: string) => Promise<UiPluginLoadIpcResult>
   getKunConfigFile: () => Promise<DeepseekConfigFileResult>
   setKunConfigFile: (content: string) => Promise<DeepseekConfigSaveResult>
   openKunConfigDir: () => Promise<PathOpenResult>

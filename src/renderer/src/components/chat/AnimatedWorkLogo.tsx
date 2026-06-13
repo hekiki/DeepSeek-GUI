@@ -1,5 +1,7 @@
 import type { ReactElement } from 'react'
 import { useEffect, useRef, useState } from 'react'
+import type { UiPluginFigureSlot } from '@shared/ui-plugin'
+import { useUiPluginFigure } from '../../store/ui-plugin-store'
 import kunLogo from '../../../../asset/img/kun_bird.png'
 import kunSurfFigure from '../../../../asset/img/kun_surf.png'
 import kunGreetFigure from '../../../../asset/img/kun_greet.png'
@@ -10,6 +12,13 @@ import ikunRunFigure from '../../../../asset/img/ikun_run.png'
 import ikunBobaFigure from '../../../../asset/img/ikun_boba.png'
 import ikunWaveFigure from '../../../../asset/img/ikun_wave.png'
 import ikunSleepFigure from '../../../../asset/img/ikun_sleep.png'
+
+/* UI 插件按槽位覆盖默认 Kun 形象时的回退链 */
+export const UI_PLUGIN_STATE_SLOTS: Record<KunStateFigureKind, readonly UiPluginFigureSlot[]> = {
+  greet: ['greet', 'swim'],
+  sleep: ['sleep', 'sit', 'swim'],
+  sit: ['sit', 'greet', 'swim']
+}
 
 export type WorkLogoSwimMode = 'propel' | 'sprint' | 'dive' | 'surf'
 
@@ -69,6 +78,8 @@ export function KunStateFigure({
   kind: KunStateFigureKind
   className?: string
 }): ReactElement {
+  // UI 插件激活时按槽位覆盖默认 Kun 美术(iKun 内置模式走 CSS 双图切换,不经过这里)
+  const kunFigureSrc = useUiPluginFigure(UI_PLUGIN_STATE_SLOTS[kind], KUN_STATE_FIGURES[kind])
   return (
     <span
       className={['ds-kun-state', `ds-kun-state-${kind}`, className].filter(Boolean).join(' ')}
@@ -76,7 +87,7 @@ export function KunStateFigure({
     >
       <img
         className="ds-kun-state-figure"
-        src={KUN_STATE_FIGURES[kind]}
+        src={kunFigureSrc}
         alt=""
         draggable={false}
         decoding="async"
@@ -127,17 +138,24 @@ export function pickIkunCameo(): IkunCameoSpec {
   return { id: ikunCameoSequence, type, side }
 }
 
+/* 出没彩蛋的槽位回退链:插件模式取插件图,iKun 模式回退坤鸡美术 */
+export const UI_PLUGIN_CAMEO_SLOTS: Record<Exclude<IkunCameoType, 'chase'>, readonly UiPluginFigureSlot[]> = {
+  dash: ['run', 'swim'],
+  peek: ['greet', 'swim'],
+  boba: ['sit', 'greet', 'swim'],
+  nap: ['sleep', 'sit', 'swim']
+}
+
 function IkunCameoFigure({
   type,
   side,
-  src,
   second = false
 }: {
   type: Exclude<IkunCameoType, 'chase'>
   side: IkunCameoSide
-  src: string
   second?: boolean
 }): ReactElement {
+  const src = useUiPluginFigure(UI_PLUGIN_CAMEO_SLOTS[type], IKUN_CAMEO_FIGURES[type])
   return (
     <span
       className={[
@@ -162,12 +180,12 @@ export function IkunCameo({ cameo }: { cameo: Pick<IkunCameoSpec, 'type' | 'side
     const otherSide: IkunCameoSide = cameo.side === 'left' ? 'right' : 'left'
     return (
       <>
-        <IkunCameoFigure type="dash" side={cameo.side} src={ikunRunFigure} />
-        <IkunCameoFigure type="dash" side={otherSide} src={ikunRunFigure} second />
+        <IkunCameoFigure type="dash" side={cameo.side} />
+        <IkunCameoFigure type="dash" side={otherSide} second />
       </>
     )
   }
-  return <IkunCameoFigure type={cameo.type} side={cameo.side} src={IKUN_CAMEO_FIGURES[cameo.type]} />
+  return <IkunCameoFigure type={cameo.type} side={cameo.side} />
 }
 
 /** iKun 模式专属:主会话两侧不定时出没的坤鸡彩蛋层(指针穿透,纯装饰) */
@@ -245,15 +263,23 @@ function KunConfettiBurst(): ReactElement {
   )
 }
 
+/* 庆祝戏码的插件槽位回退链 */
+export const UI_PLUGIN_CELEBRATION_SLOTS: Record<KunCelebrationVariant, readonly UiPluginFigureSlot[]> = {
+  cheer: ['greet', 'swim'],
+  lap: ['run', 'surf', 'swim'],
+  toast: ['sit', 'greet', 'swim']
+}
+
 /** 单场庆祝:跃起欢呼 / 胜利冲浪(iKun 为快攻冲刺) / 举杯庆功 */
 export function KunCelebration({ variant }: { variant: KunCelebrationVariant }): ReactElement {
   const figures = KUN_CELEBRATION_FIGURES[variant]
+  const kunFigureSrc = useUiPluginFigure(UI_PLUGIN_CELEBRATION_SLOTS[variant], figures.kun)
   return (
     <span className={`ds-kun-celebration ds-kun-celebration-${variant}`}>
       <span className="ds-kun-celebration-figure-wrap">
         <img
           className="ds-kun-celebration-figure is-kun"
-          src={figures.kun}
+          src={kunFigureSrc}
           alt=""
           draggable={false}
           decoding="async"
@@ -398,7 +424,10 @@ export function AnimatedWorkLogo({
   const effectiveIkunVariant = ikunVariant ?? rotatedIkunVariant
   const rotatedSwimMode = useWorkLogoSwimMode(active && mode === undefined)
   const swimMode = mode ?? rotatedSwimMode
-  const figureSrc = swimMode === 'surf' ? kunSurfFigure : kunLogo
+  const figureSrc = useUiPluginFigure(
+    swimMode === 'surf' ? ['surf', 'swim'] : ['swim'],
+    swimMode === 'surf' ? kunSurfFigure : kunLogo
+  )
 
   return (
     <span

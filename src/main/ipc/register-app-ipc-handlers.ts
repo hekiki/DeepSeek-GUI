@@ -48,6 +48,7 @@ import {
   skillSaveFilePayloadSchema,
   settingsPatchSchema,
   streamIdSchema,
+  uiPluginIdPayloadSchema,
   workspaceDirectoryCreatePayloadSchema,
   workspaceClipboardImageSavePayloadSchema,
   workspaceDirectoryTargetPayloadSchema,
@@ -73,6 +74,13 @@ import { probeModelProvider } from '../provider-connection'
 import type { ClawRuntime } from '../claw-runtime'
 import type { ScheduleRuntime } from '../schedule-runtime'
 import { createAndSwitchGitBranch, getGitBranches, switchGitBranch } from '../services/git-service'
+import {
+  installUiPluginFromDirectory,
+  listUiPlugins,
+  loadUiPluginFigures,
+  removeUiPlugin
+} from '../services/ui-plugin-service'
+import { ensureBundledUiPlugins } from '../ui-plugin-bundled'
 import {
   createWorkspaceDirectory,
   createWorkspaceFile,
@@ -647,6 +655,42 @@ export function registerAppIpcHandlers(options: RegisterAppIpcHandlersOptions): 
         message: error instanceof Error ? error.message : String(error)
       }
     }
+  })
+
+  ipcMain.handle('ui-plugin:list', async () => {
+    await ensureBundledUiPlugins(app.getPath('userData'))
+    return { plugins: await listUiPlugins(app.getPath('userData')) }
+  })
+
+  ipcMain.handle('ui-plugin:install', async () => {
+    const mainWindow = getMainWindow()
+    const options: Electron.OpenDialogOptions = {
+      title: 'Select a UI plugin folder',
+      properties: ['openDirectory', 'dontAddToRecent']
+    }
+    const picked = mainWindow
+      ? await dialog.showOpenDialog(mainWindow, options)
+      : await dialog.showOpenDialog(options)
+    const sourceDir = picked.filePaths[0]
+    if (picked.canceled || !sourceDir) {
+      return { canceled: true as const }
+    }
+    const result = await installUiPluginFromDirectory(app.getPath('userData'), sourceDir)
+    if (!result.ok) {
+      return { canceled: false as const, ok: false as const, errors: result.errors }
+    }
+    return { canceled: false as const, ok: true as const, plugin: result.plugin }
+  })
+
+  ipcMain.handle('ui-plugin:remove', async (_, payload: unknown) => {
+    const request = parseIpcPayload('ui-plugin:remove', uiPluginIdPayloadSchema, payload)
+    return { ok: await removeUiPlugin(app.getPath('userData'), request.id) }
+  })
+
+  ipcMain.handle('ui-plugin:load', async (_, payload: unknown) => {
+    const request = parseIpcPayload('ui-plugin:load', uiPluginIdPayloadSchema, payload)
+    await ensureBundledUiPlugins(app.getPath('userData'))
+    return loadUiPluginFigures(app.getPath('userData'), request.id)
   })
 
   ipcMain.handle('kun:config:read', async () => {

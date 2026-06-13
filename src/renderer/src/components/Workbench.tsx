@@ -82,7 +82,7 @@ import { normalizeWorkspaceRoot } from '../lib/workspace-path'
 import { useKeyboardShortcutSettings } from '../lib/keyboard-shortcut-settings'
 import { collectComposerChangeSummary } from '../lib/composer-change-summary'
 import { formatWorkspacePickerError } from '../lib/format-workspace-picker-error'
-import { readIkunModePreference } from '../lib/ikun-mode'
+import { useUiModeCameosEnabled, useUiPluginStore } from '../store/ui-plugin-store'
 import { readFocusModePreference, writeFocusModePreference } from '../lib/focus-mode'
 import {
   buildComposerFileContextPrompt,
@@ -389,7 +389,8 @@ export function Workbench(): ReactElement {
   const [attachmentUploadBusy, setAttachmentUploadBusy] = useState(false)
   const [attachmentUploadError, setAttachmentUploadError] = useState<string | null>(null)
   const [connectPhoneSidebarOpen, setConnectPhoneSidebarOpen] = useState(false)
-  const [ikunModeEnabled] = useState(readIkunModePreference)
+  const initUiPlugins = useUiPluginStore((s) => s.initUiPlugins)
+  const uiModeCameosEnabled = useUiModeCameosEnabled()
   const [focusModeEnabled, setFocusModeEnabled] = useState(readFocusModePreference)
   const [runtimeLogPath, setRuntimeLogPath] = useState('')
   const [planPanelOverlayPreferred, setPlanPanelOverlayPreferred] = useState(false)
@@ -624,9 +625,9 @@ export function Workbench(): ReactElement {
   }, [])
 
   useEffect(() => {
-    if (typeof document === 'undefined') return
-    document.documentElement.setAttribute('data-ikun-mode', ikunModeEnabled ? 'on' : 'off')
-  }, [ikunModeEnabled])
+    // 形象工坊:读取偏好、应用 DOM 属性/token,并在插件模式下加载图集
+    void initUiPlugins()
+  }, [initUiPlugins])
 
   useEffect(() => {
     if (typeof document === 'undefined') return
@@ -2084,6 +2085,7 @@ export function Workbench(): ReactElement {
                 onRetryConnection={() => void probeRuntime('user', { restart: true })}
                 onOpenSettings={() => openSettings('agents')}
                 onSelectSuggestion={(text) => setInput(text)}
+                focusModeEnabled={focusModeEnabled}
                 planActionsBusy={busy}
                 onBuildPlan={() => void buildGuiPlan()}
                 onOpenPlan={openGuiPlanPanel}
@@ -2097,7 +2099,7 @@ export function Workbench(): ReactElement {
                   ) : null
                 }
               />
-              {ikunModeEnabled && !focusModeEnabled ? <IkunCameoLayer /> : null}
+              {uiModeCameosEnabled && !focusModeEnabled ? <IkunCameoLayer /> : null}
               {!focusModeEnabled ? <KunCelebrationLayer active={busy} suppressed={Boolean(error)} /> : null}
             </div>
             <div className="ds-no-drag flex shrink-0 justify-center px-2 pb-3 pt-0 sm:px-4 md:px-6 lg:px-8">

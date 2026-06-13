@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { resolveUiPluginFigure } from '@shared/ui-plugin'
+import { useUiPluginStore } from '../../store/ui-plugin-store'
 import {
   AnimatedWorkLogo,
   IKUN_CAMEO_DURATIONS_MS,
@@ -13,6 +15,9 @@ import {
   KunCelebration,
   KunStateFigure,
   SidebarMascot,
+  UI_PLUGIN_CAMEO_SLOTS,
+  UI_PLUGIN_CELEBRATION_SLOTS,
+  UI_PLUGIN_STATE_SLOTS,
   WORK_LOGO_SWIM_MODES,
   WORK_LOGO_SWIM_MODE_LABEL_KEYS,
   pickIkunCameo,
@@ -69,6 +74,40 @@ describe('AnimatedWorkLogo', () => {
       expect(html).toContain('ds-kun-state-figure')
       expect(html).toContain('ds-ikun-state-figure')
     }
+  })
+
+  describe('UI plugin slot fallback chains', () => {
+    const figures = {
+      swim: 'data:image/png;base64,SWIM',
+      greet: 'data:image/png;base64,GREET'
+    }
+
+    it('every surface chain ends at swim so partial skins always resolve', () => {
+      const chains = [
+        ...Object.values(UI_PLUGIN_STATE_SLOTS),
+        ...Object.values(UI_PLUGIN_CAMEO_SLOTS),
+        ...Object.values(UI_PLUGIN_CELEBRATION_SLOTS)
+      ]
+      for (const chain of chains) {
+        expect(chain[chain.length - 1]).toBe('swim')
+      }
+    })
+
+    it('resolves missing slots through the chains', () => {
+      expect(resolveUiPluginFigure(figures, UI_PLUGIN_STATE_SLOTS.greet)).toBe(figures.greet)
+      // sleep 槽位缺失 → 回退链最终落到 swim
+      expect(resolveUiPluginFigure(figures, UI_PLUGIN_STATE_SLOTS.sleep)).toBe(figures.swim)
+      expect(resolveUiPluginFigure(figures, UI_PLUGIN_CAMEO_SLOTS.dash)).toBe(figures.swim)
+      expect(resolveUiPluginFigure(figures, UI_PLUGIN_CELEBRATION_SLOTS.cheer)).toBe(figures.greet)
+      expect(resolveUiPluginFigure(null, UI_PLUGIN_STATE_SLOTS.greet)).toBeNull()
+    })
+
+    it('keeps default art when no plugin is active', () => {
+      expect(useUiPluginStore.getState().activeRuntime).toBeNull()
+      const html = renderToStaticMarkup(createElement(KunStateFigure, { kind: 'greet' }))
+      expect(html).not.toContain('data:image')
+      expect(html).toContain('ds-kun-state-figure')
+    })
   })
 
   it('pins the swim mode when one is provided', () => {

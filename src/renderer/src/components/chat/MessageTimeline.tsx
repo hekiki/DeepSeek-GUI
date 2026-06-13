@@ -18,6 +18,8 @@ import {
   useIkunWorkLogoVariant,
   useWorkLogoSwimMode
 } from './AnimatedWorkLogo'
+import type { UiPluginLabelKey } from '@shared/ui-plugin'
+import { useUiPluginWorkLabel } from '../../store/ui-plugin-store'
 import {
   groupTurns,
   sameTurnContent,
@@ -40,6 +42,7 @@ type Props = {
   onRetryConnection: () => void
   onOpenSettings: () => void
   onSelectSuggestion?: (prompt: string) => void
+  focusModeEnabled?: boolean
   devPreviewCard?: ReactElement | null
   /** Disables the inline Review Plan card's Build action while a turn runs. */
   planActionsBusy?: boolean
@@ -100,6 +103,7 @@ export function MessageTimeline({
   onRetryConnection,
   onOpenSettings,
   onSelectSuggestion,
+  focusModeEnabled = false,
   devPreviewCard,
   planActionsBusy,
   onBuildPlan,
@@ -239,6 +243,7 @@ export function MessageTimeline({
             onRetry={onRetryConnection}
             onOpenSettings={onOpenSettings}
             onSelectSuggestion={onSelectSuggestion}
+            focusModeEnabled={focusModeEnabled}
           />
         ) : null}
 
@@ -502,7 +507,7 @@ function MessageTurn({
 }
 
 function LiveTurnProgressRow({ hasActiveGoal }: { hasActiveGoal: boolean }): ReactElement {
-  const { t } = useTranslation('common')
+  const { t, i18n } = useTranslation('common')
   const swimMode = useWorkLogoSwimMode(true)
   const ikunVariant = useIkunWorkLogoVariant(true)
   // iKun 模式是全局 html 属性;进行行每个回合重新挂载,挂载时读取即可
@@ -511,16 +516,22 @@ function LiveTurnProgressRow({ hasActiveGoal }: { hasActiveGoal: boolean }): Rea
       typeof document !== 'undefined' &&
       document.documentElement.getAttribute('data-ikun-mode') === 'on'
   )
-  const labelKey = ikunModeOn
-    ? IKUN_WORK_LOGO_VARIANT_LABEL_KEYS[ikunVariant]
-    : WORK_LOGO_SWIM_MODE_LABEL_KEYS[swimMode]
+  const swimLabelKey = WORK_LOGO_SWIM_MODE_LABEL_KEYS[swimMode]
+  // UI 插件可声明自己的进行中文案(按泳姿键、按语言),未声明则用默认文案
+  const pluginLabel = useUiPluginWorkLabel(
+    swimLabelKey as UiPluginLabelKey,
+    i18n.language ?? 'zh'
+  )
+  const label = ikunModeOn
+    ? t(IKUN_WORK_LOGO_VARIANT_LABEL_KEYS[ikunVariant])
+    : pluginLabel ?? t(swimLabelKey)
 
   return (
     <div className={liveTurnProgressClass(hasActiveGoal)}>
       <span className="ds-work-logo-slot ds-work-logo-slot-sm mr-0.5">
         <AnimatedWorkLogo active ikunVariant={ikunVariant} mode={swimMode} phase="trail" size="sm" />
       </span>
-      <span className="ds-shiny-text">{t(labelKey)}</span>
+      <span className="ds-shiny-text">{label}</span>
     </div>
   )
 }

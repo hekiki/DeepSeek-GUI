@@ -35,23 +35,27 @@ const labels: Record<string, string> = {
   speechToText: 'Speech to text',
   agents: 'AI assistant',
   keyboardShortcuts: 'Keyboard shortcuts',
-  easterEgg: 'Easter eggs',
+  easterEgg: 'Mode workshop',
   claw: 'Connect phone',
   settingsFooter: 'Settings',
-  easterEggSection: 'Hidden extras',
-  ikunModeTitle: 'iKun mode',
-  ikunModeDesc: 'Switches the workspace mascot and cameo animations.',
-  ikunModeToggleLabel: 'Toggle iKun mode',
-  ikunMode: 'iKun',
-  switchOn: 'On',
-  switchOff: 'Off'
+  easterEggSection: 'Mode workshop',
+  uiModeWorkshopTitle: 'Mascot modes',
+  uiModeWorkshopDesc: 'Pick the workspace mascot pack. iKun is a pre-installed plugin example.',
+  uiModeDefaultTitle: 'Default Kun',
+  uiModeDefaultSubtitle: 'The little blue bird',
+  uiPluginInstall: 'Install plugin folder…',
+  uiPluginActivate: 'Use',
+  uiPluginActive: 'Active',
+  uiPluginRemove: 'Remove plugin',
+  uiPluginEmpty: 'No UI plugins installed yet.',
+  uiPluginDocsHint: 'Developer guide: docs/UI_PLUGINS.md'
 }
 
 function t(key: string): string {
   return labels[key] ?? key
 }
 
-describe('EasterEggSettingsSection', () => {
+describe('EasterEggSettingsSection (mode workshop)', () => {
   beforeEach(() => {
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
@@ -63,7 +67,7 @@ describe('EasterEggSettingsSection', () => {
     restoreLocalStorage()
   })
 
-  it('renders iKun mode inside the easter egg settings section', () => {
+  it('renders the default mode card and install entry (plugins come from the installed list)', () => {
     const html = renderToStaticMarkup(createElement(EasterEggSettingsSection, {
       ctx: {
         t,
@@ -71,15 +75,17 @@ describe('EasterEggSettingsSection', () => {
       }
     }))
 
-    expect(html).toContain('Hidden extras')
-    expect(html).toContain('iKun mode')
-    expect(html).toContain('Switches the workspace mascot')
-    expect(html).toContain('role="switch"')
-    expect(html).toContain('aria-checked="false"')
-    expect(html).toContain('Off')
+    expect(html).toContain('Mode workshop')
+    expect(html).toContain('Mascot modes')
+    expect(html).toContain('Default Kun')
+    expect(html).toContain('Install plugin folder…')
+    expect(html).toContain('docs/UI_PLUGINS.md')
+    // 默认模式应处于使用中状态;iKun 不再硬编码,而是预装插件,SSR 下列表为空
+    expect(html).toContain('Active')
+    expect(html).not.toContain('iKun mode')
   })
 
-  it('adds an easter egg tab to the settings sidebar', () => {
+  it('adds the workshop tab to the settings sidebar', () => {
     const html = renderToStaticMarkup(createElement(SettingsSidebar, {
       category: 'easterEgg',
       goBack: () => undefined,
@@ -87,7 +93,7 @@ describe('EasterEggSettingsSection', () => {
       t
     }))
 
-    expect(html).toContain('Easter eggs')
+    expect(html).toContain('Mode workshop')
     expect(html).toContain('bg-ds-subtle')
   })
 })
